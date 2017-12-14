@@ -3,8 +3,9 @@ var enzyme = require('enzyme');
 var chai = require('chai');
 var Promise = require('bluebird');
 
-var Component = require('../src/Component');
+var isNumber = require('lodash/isNumber');
 
+var Component = require('../src/Component');
 
 var mount = enzyme.mount;
 var assert = chai.assert;
@@ -65,6 +66,38 @@ describe('<HotKey />', function() {
     var checkKeys = ['m', 'o', 'c', 'k']
     var checkEvents = checkKeys.map(function (key) {
       return new KeyboardEvent('keydown', {'key': key});
+    })
+
+    return new Promise(function(resolve) {
+      var onKeysCoincide = function() {
+        onKeysCoincideMock();
+        resolve();
+      };
+      var created = createComponent({
+        keys: checkKeys,
+        onKeysCoincide: onKeysCoincide
+      });
+
+      var wrapper = created.wrapper;
+      var page = created.page;
+
+      checkEvents.forEach(document.dispatchEvent.bind(document));
+    }).then(function() {
+      expect(onKeysCoincideMock).toHaveBeenCalled();
+    });
+  });
+
+  it('Should handle keycodes with keys sequently', function() {
+    var onKeysCoincideMock = jest.fn();
+    var checkKeys = ['m', 79, 'c', 75]
+    var checkEvents = checkKeys.map(function (key) {
+      var event = {};
+      if (isNumber(key)) {
+        event.keyCode = key;
+      } else {
+        event.key = key;
+      }
+      return new KeyboardEvent('keydown', event);
     })
 
     return new Promise(function(resolve) {

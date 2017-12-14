@@ -14,11 +14,19 @@ module.exports = React.createClass({
 
   getInitialState: function initialState() {
     var props = this.props || {};
+    var keys = props.keys || [];
+    var keysMap = {};
+
+    keys.forEach(function iterator(key) {
+      keysMap[key] = true;
+    });
 
     return {
       buffer: [],
       eventsBuffer: [],
-      maxLength: (props.keys && props.keys.length) || 0
+      maxLength: (props.keys && props.keys.length) || 0,
+      keys: keys,
+      keysMap: keysMap
     };
   },
 
@@ -34,7 +42,8 @@ module.exports = React.createClass({
     var props = this.props || {};
     var state = this.state || {};
 
-    var keys = props.keys;
+    var keys = state.keys;
+    var keysMap = state.keysMap;
     var onKeysCoincide = props.onKeysCoincide;
     var simultaneous = props.simultaneous;
 
@@ -44,6 +53,7 @@ module.exports = React.createClass({
     var maxLength = state.maxLength || 0;
 
     var key = (e && e.key && e.key.toLowerCase()) || null;
+    var keyCode = (e && e.keyCode) || null;
 
     var newBuffer = [];
     var newEventsBuffer = [];
@@ -52,13 +62,35 @@ module.exports = React.createClass({
     var areKeysPressedTogether;
     var areKeysPressedSequently;
 
-    if (key) {
+    if (key && !keysMap[key]) {
+      key = null;
+    }
+    if (keyCode && !keysMap[keyCode]) {
+      keyCode = null;
+    }
+
+    function appendBuffer(value) {
+      var result;
       if (buffer.length >= maxLength) {
-        newBuffer = buffer.slice(1).concat(key);
+        result = buffer.slice(1).concat(value);
+      } else {
+        result = buffer.concat(value);
+      }
+      return result;
+    }
+
+    if (key || keyCode) {
+      if (buffer.length >= maxLength) {
         newEventsBuffer = eventsBuffer.slice(1).concat(e);
       } else {
-        newBuffer = buffer.concat(key);
         newEventsBuffer = eventsBuffer.concat(e);
+      }
+      newBuffer = buffer;
+      if (key) {
+        newBuffer = appendBuffer(key);
+      }
+      if (keyCode) {
+        newBuffer = appendBuffer(keyCode);
       }
     }
 
