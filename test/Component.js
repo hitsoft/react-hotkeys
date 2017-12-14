@@ -60,13 +60,20 @@ describe('<HotKey />', function() {
     expect(Component.prototype.componentDidMount).toHaveBeenCalledTimes(1);
   });
 
+  function _mkEvent(key) {
+    var event = {};
+    if (isNumber(key)) {
+      event.keyCode = key;
+    } else {
+      event.key = key;
+    }
+    return new KeyboardEvent('keydown', event);
+  }
 
   it('Should handle keys sequently', function() {
     var onKeysCoincideMock = jest.fn();
     var checkKeys = ['m', 'o', 'c', 'k']
-    var checkEvents = checkKeys.map(function (key) {
-      return new KeyboardEvent('keydown', {'key': key});
-    })
+    var checkEvents = checkKeys.map(_mkEvent)
 
     return new Promise(function(resolve) {
       var onKeysCoincide = function() {
@@ -90,15 +97,32 @@ describe('<HotKey />', function() {
   it('Should handle keycodes with keys sequently', function() {
     var onKeysCoincideMock = jest.fn();
     var checkKeys = ['m', 79, 'c', 75]
-    var checkEvents = checkKeys.map(function (key) {
-      var event = {};
-      if (isNumber(key)) {
-        event.keyCode = key;
-      } else {
-        event.key = key;
-      }
-      return new KeyboardEvent('keydown', event);
-    })
+    var checkEvents = checkKeys.map(_mkEvent)
+
+    return new Promise(function(resolve) {
+      var onKeysCoincide = function() {
+        onKeysCoincideMock();
+        resolve();
+      };
+      var created = createComponent({
+        keys: checkKeys,
+        onKeysCoincide: onKeysCoincide
+      });
+
+      var wrapper = created.wrapper;
+      var page = created.page;
+
+      checkEvents.forEach(document.dispatchEvent.bind(document));
+    }).then(function() {
+      expect(onKeysCoincideMock).toHaveBeenCalled();
+    });
+  });
+
+
+  it('Should properly shift keys buffer', function() {
+    var onKeysCoincideMock = jest.fn();
+    var checkKeys = ['m', 79, 'c', 75]
+    var checkEvents = [_mkEvent('ctrl'), _mkEvent(32)].concat(checkKeys.map(_mkEvent));
 
     return new Promise(function(resolve) {
       var onKeysCoincide = function() {
